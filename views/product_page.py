@@ -1,4 +1,5 @@
 from views.base_page import BasePage
+import customtkinter as ctk
 
 class ProductPage(BasePage):
     def __init__(self, parent, controller):
