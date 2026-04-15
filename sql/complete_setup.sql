@@ -1,13 +1,56 @@
--- Comprehensive Supermarket Sample Data for Smart Management System
+-- Complete Database Setup for Smart Management System
+-- This script creates the database, tables, and loads all sample data
 
+CREATE DATABASE IF NOT EXISTS smart_management_system;
 USE smart_management_system;
 
+-- ===== TABLE CREATION =====
+
+-- Table 1: Categories
+CREATE TABLE IF NOT EXISTS categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT
+) ENGINE=InnoDB;
+
+-- Table 2: Products
+CREATE TABLE IF NOT EXISTS products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    category_id INT NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    stock INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Table 3: Orders
+CREATE TABLE IF NOT EXISTS orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT NOT NULL,
+    customer_name VARCHAR(100) NOT NULL,
+    quantity INT NOT NULL DEFAULT 1,
+    total_price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Table 4: Users
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+
 -- Default Admin User (password: admin123 - hashed SHA256)
-INSERT INTO users (username, email, password) VALUES 
+INSERT IGNORE INTO users (username, email, password) VALUES 
 ('admin', 'admin@supermarket.local', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9');
 
 -- Sample Supermarket Categories
-INSERT INTO categories (name, description) VALUES 
+INSERT IGNORE INTO categories (name, description) VALUES 
 ('Fruits & Vegetables', 'Fresh produce section'),
 ('Dairy & Eggs', 'Milk, cheese, yogurt, and eggs'),
 ('Meat & Seafood', 'Fresh meat, poultry, and seafood'),
@@ -19,8 +62,8 @@ INSERT INTO categories (name, description) VALUES
 ('Personal Care', 'Soap, shampoo, toothpaste'),
 ('Household Items', 'Cleaning supplies and essentials');
 
--- Fruits & Vegetables Products
-INSERT INTO products (category_id, name, price, stock) VALUES 
+-- Fruits & Vegetables Products (10 items)
+INSERT IGNORE INTO products (category_id, name, price, stock) VALUES 
 (1, 'Fresh Apples', 3.99, 150),
 (1, 'Organic Bananas', 2.49, 200),
 (1, 'Carrots (1kg)', 1.99, 100),
@@ -32,8 +75,8 @@ INSERT INTO products (category_id, name, price, stock) VALUES
 (1, 'Onions (3kg)', 5.49, 80),
 (1, 'Mixed Berries (500g)', 6.99, 45);
 
--- Dairy & Eggs Products
-INSERT INTO products (category_id, name, price, stock) VALUES 
+-- Dairy & Eggs Products (10 items)
+INSERT IGNORE INTO products (category_id, name, price, stock) VALUES 
 (2, 'Whole Milk (1L)', 3.29, 200),
 (2, 'Cheddar Cheese', 7.99, 85),
 (2, 'Greek Yogurt (500g)', 5.49, 110),
@@ -45,8 +88,8 @@ INSERT INTO products (category_id, name, price, stock) VALUES
 (2, 'Sour Cream (500ml)', 3.99, 55),
 (2, 'Feta Cheese', 7.49, 50);
 
--- Meat & Seafood Products
-INSERT INTO products (category_id, name, price, stock) VALUES 
+-- Meat & Seafood Products (10 items)
+INSERT IGNORE INTO products (category_id, name, price, stock) VALUES 
 (3, 'Chicken Breast (1kg)', 9.99, 120),
 (3, 'Ground Beef (500g)', 8.49, 95),
 (3, 'Salmon Fillet (500g)', 14.99, 45),
@@ -58,8 +101,8 @@ INSERT INTO products (category_id, name, price, stock) VALUES
 (3, 'Sausages (500g)', 5.99, 100),
 (3, 'Cod Fillet', 12.99, 50);
 
--- Bakery Products
-INSERT INTO products (category_id, name, price, stock) VALUES 
+-- Bakery Products (10 items)
+INSERT IGNORE INTO products (category_id, name, price, stock) VALUES 
 (4, 'Whole Wheat Bread', 3.49, 60),
 (4, 'Croissants (4-pack)', 5.99, 50),
 (4, 'Bagels (6-pack)', 4.99, 45),
@@ -71,8 +114,8 @@ INSERT INTO products (category_id, name, price, stock) VALUES
 (4, 'Multigrain Bread', 4.49, 55),
 (4, 'Donut Mix (6-pack)', 5.49, 40);
 
--- Beverages Products
-INSERT INTO products (category_id, name, price, stock) VALUES 
+-- Beverages Products (10 items)
+INSERT IGNORE INTO products (category_id, name, price, stock) VALUES 
 (5, 'Orange Juice (1L)', 4.49, 100),
 (5, 'Coffee Beans (500g)', 8.99, 75),
 (5, 'Green Tea (20-pack)', 5.99, 60),
@@ -84,8 +127,8 @@ INSERT INTO products (category_id, name, price, stock) VALUES
 (5, 'Lemonade (2L)', 3.49, 95),
 (5, 'Sparkling Water (6-pack)', 5.99, 80);
 
--- Pantry Staples Products
-INSERT INTO products (category_id, name, price, stock) VALUES 
+-- Pantry Staples Products (10 items)
+INSERT IGNORE INTO products (category_id, name, price, stock) VALUES 
 (6, 'Jasmine Rice (2kg)', 6.99, 100),
 (6, 'Pasta (500g)', 1.99, 250),
 (6, 'Olive Oil (1L)', 9.99, 50),
@@ -97,8 +140,8 @@ INSERT INTO products (category_id, name, price, stock) VALUES
 (6, 'Cornflakes Cereal', 4.99, 70),
 (6, 'Honey (500ml)', 8.99, 45);
 
--- Snacks & Sweets Products
-INSERT INTO products (category_id, name, price, stock) VALUES 
+-- Snacks & Sweets Products (10 items)
+INSERT IGNORE INTO products (category_id, name, price, stock) VALUES 
 (7, 'Potato Chips (200g)', 3.49, 120),
 (7, 'Chocolate Bars (pack)', 7.99, 200),
 (7, 'Pretzels (400g)', 4.99, 95),
@@ -110,8 +153,8 @@ INSERT INTO products (category_id, name, price, stock) VALUES
 (7, 'Candy Mix (1kg)', 9.99, 50),
 (7, 'Trail Mix (400g)', 6.99, 75);
 
--- Frozen Foods Products
-INSERT INTO products (category_id, name, price, stock) VALUES 
+-- Frozen Foods Products (10 items)
+INSERT IGNORE INTO products (category_id, name, price, stock) VALUES 
 (8, 'Frozen Pizza (3-pack)', 12.99, 80),
 (8, 'Frozen Vegetables Mix', 3.99, 140),
 (8, 'Ice Cream (2L)', 7.99, 100),
@@ -123,8 +166,8 @@ INSERT INTO products (category_id, name, price, stock) VALUES
 (8, 'Popsicles (12-pack)', 4.99, 150),
 (8, 'Frozen Waffles (24-pack)', 5.99, 85);
 
--- Personal Care Products
-INSERT INTO products (category_id, name, price, stock) VALUES 
+-- Personal Care Products (10 items)
+INSERT IGNORE INTO products (category_id, name, price, stock) VALUES 
 (9, 'Shampoo (500ml)', 6.99, 85),
 (9, 'Conditioner (500ml)', 6.99, 75),
 (9, 'Toothpaste (100ml)', 3.99, 150),
@@ -136,8 +179,8 @@ INSERT INTO products (category_id, name, price, stock) VALUES
 (9, 'Hair Gel (200ml)', 5.99, 50),
 (9, 'Mouthwash (500ml)', 4.99, 90);
 
--- Household Items Products
-INSERT INTO products (category_id, name, price, stock) VALUES 
+-- Household Items Products (10 items)
+INSERT IGNORE INTO products (category_id, name, price, stock) VALUES 
 (10, 'Laundry Detergent (2L)', 9.99, 80),
 (10, 'Dish Soap (500ml)', 2.99, 150),
 (10, 'Paper Towels (12-roll)', 11.99, 70),
@@ -149,8 +192,8 @@ INSERT INTO products (category_id, name, price, stock) VALUES
 (10, 'Bleach (1L)', 3.99, 75),
 (10, 'Disinfectant Wipes (100-pack)', 5.99, 130);
 
--- Sample Transactions
-INSERT INTO orders (product_id, customer_name, quantity, total_price) VALUES 
+-- Sample Transactions (15 orders)
+INSERT IGNORE INTO orders (product_id, customer_name, quantity, total_price) VALUES 
 (1, 'John Smith', 5, 19.95),
 (2, 'Emma Wilson', 3, 7.47),
 (15, 'Michael Brown', 2, 8.98),
@@ -166,3 +209,7 @@ INSERT INTO orders (product_id, customer_name, quantity, total_price) VALUES
 (45, 'Richard Lewis', 3, 14.97),
 (65, 'Jessica Rodriguez', 2, 11.98),
 (80, 'Thomas Anderson', 4, 23.96);
+
+-- ===== COMPLETION =====
+-- Database setup complete!
+-- Total: 1 database, 4 tables, 1 admin user, 10 categories, 100 products, 15 sample orders

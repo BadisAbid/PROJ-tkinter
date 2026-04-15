@@ -30,3 +30,14 @@ class CategoryModel:
         query = "SELECT * FROM categories WHERE name LIKE %s OR description LIKE %s"
         params = (f"%{term}%", f"%{term}%")
         return self.db.fetch_all(query, params)
+
+    def get_all_with_product_count(self):
+        """Get all categories with product counts for dashboard"""
+        query = """
+            SELECT c.id, c.name, c.description, COUNT(p.id) as product_count
+            FROM categories c
+            LEFT JOIN products p ON c.id = p.category_id
+            GROUP BY c.id, c.name, c.description
+            ORDER BY COUNT(p.id) DESC
+        """
+        return self.db.fetch_all(query)

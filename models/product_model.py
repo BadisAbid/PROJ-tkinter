@@ -40,3 +40,14 @@ class ProductModel:
     def get_stats(self):
         query = "SELECT COUNT(*) as total_count, SUM(stock) as total_stock, AVG(price) as avg_price FROM products"
         return self.db.fetch_one(query)
+
+    def get_all_with_details(self):
+        """Get all products with complete details for dashboard"""
+        query = """
+            SELECT p.id, p.name, p.price, p.stock, p.category_id, c.name as category_name
+            FROM products p
+            JOIN categories c ON p.category_id = c.id
+            ORDER BY p.stock DESC
+            LIMIT 15
+        """
+        return self.db.fetch_all(query)

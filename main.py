@@ -7,6 +7,8 @@ from views.category_page import CategoryPage
 from views.product_page import ProductPage
 from views.order_page import OrderPage
 from views.login_page import LoginPage
+from views.signup_page import SignupPage
+from views.counter_page import CounterPage
 
 class SmartManagementApp(ctk.CTk):
     def __init__(self):
@@ -35,8 +37,31 @@ class SmartManagementApp(ctk.CTk):
         for widget in self.main_container.winfo_children():
             widget.destroy()
         
-        login = LoginPage(self.main_container, self.on_login_success)
+        login = LoginPage(self.main_container, self.on_login_attempt, self.show_signup)
         login.pack(fill="both", expand=True)
+
+    def show_signup(self):
+        for widget in self.main_container.winfo_children():
+            widget.destroy()
+        
+        signup = SignupPage(self.main_container, self.on_signup_attempt, self.show_login)
+        signup.pack(fill="both", expand=True)
+
+    def on_login_attempt(self, username, password):
+        success, user = self.controller.login(username, password)
+        if success:
+            self.is_authenticated = True
+            self.setup_main_ui()
+        else:
+            messagebox.showerror("Login Failed", "Invalid username or password")
+
+    def on_signup_attempt(self, username, email, password):
+        success, message = self.controller.signup(username, email, password)
+        if success:
+            messagebox.showinfo("Success", message)
+            self.show_login()  # Go back to login after successful signup
+        else:
+            messagebox.showerror("Signup Failed", message)
 
     def on_login_success(self):
         self.is_authenticated = True
@@ -75,6 +100,8 @@ class SmartManagementApp(ctk.CTk):
             page = ProductPage(self.page_frame, self.controller)
         elif page_name == "Orders":
             page = OrderPage(self.page_frame, self.controller)
+        elif page_name == "Counter":
+            page = CounterPage(self.page_frame, self.controller)
         else:
             page = ctk.CTkLabel(self.page_frame, text=f"{page_name} Coming Soon...", font=("Arial", 24))
         
