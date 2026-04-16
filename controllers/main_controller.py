@@ -27,11 +27,11 @@ class MainController:
     def get_products(self):
         return self.product_model.get_all_with_category()
 
-    def add_product(self, category_id, name, price, stock):
+    def add_product(self, category_id, name, price, stock, image_path=None):
         if not name or not category_id:
             return False, "Name and Category are required"
         try:
-            self.product_model.create(category_id, name, price, stock)
+            self.product_model.create(category_id, name, price, stock, image_path)
             return True, "Product added successfully"
         except Exception as e:
             return False, str(e)

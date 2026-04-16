@@ -10,9 +10,24 @@ from views.base_page import BasePage
 #  Users can Add / Edit / Delete categories.
 # =============================================
 
-# Category emojis — shown on each card
-CATEGORY_ICONS = ["📂", "🍎", "🥤", "🧴", "🛍️", "👕", "💊", "🏠", "📱", "🎮",
-                  "🍕", "🌿", "⚙️", "📚", "🎨", "🚗", "🐾", "💎", "🧹", "🎵"]
+# Smart Category Emojis — mapping names to icons
+CATEGORY_ICON_MAP = {
+    "Electronics": "📱",
+    "Computers": "💻",
+    "Laptops": "💻",
+    "Smartphones": "📱",
+    "Audio": "🎧",
+    "Headphones": "🎧",
+    "Gaming": "🎮",
+    "Food": "🍎",
+    "Beverages": "🥤",
+    "Health": "💊",
+    "Clothing": "👕",
+    "Home": "🏠",
+    "Office": "💼",
+    "Misc": "📂"
+}
+DEFAULT_ICON = "📂"
 
 
 class CategoryPage(BasePage):
@@ -127,8 +142,9 @@ class CategoryPage(BasePage):
 
     def _create_category_card(self, idx, cat):
         """Create one visual card for a category."""
-        # Pick an emoji icon based on index (loops if more categories than icons)
-        icon = CATEGORY_ICONS[idx % len(CATEGORY_ICONS)]
+        # Pick an emoji based on the category name
+        name_raw = cat["name"]
+        icon = CATEGORY_ICON_MAP.get(name_raw, DEFAULT_ICON)
 
         card = ctk.CTkFrame(
             self.card_scroll,

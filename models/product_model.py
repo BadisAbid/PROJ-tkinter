@@ -4,9 +4,9 @@ class ProductModel:
     def __init__(self):
         self.db = Database()
 
-    def create(self, category_id, name, price, stock):
-        query = "INSERT INTO products (category_id, name, price, stock) VALUES (%s, %s, %s, %s)"
-        params = (category_id, name, price, stock)
+    def create(self, category_id, name, price, stock, image_path=None):
+        query = "INSERT INTO products (category_id, name, price, stock, image_path) VALUES (%s, %s, %s, %s, %s)"
+        params = (category_id, name, price, stock, image_path)
         return self.db.execute_query(query, params, commit=True)
 
     def get_all_with_category(self):
@@ -18,9 +18,9 @@ class ProductModel:
         """
         return self.db.fetch_all(query)
 
-    def update(self, product_id, category_id, name, price, stock):
-        query = "UPDATE products SET category_id = %s, name = %s, price = %s, stock = %s WHERE id = %s"
-        params = (category_id, name, price, stock, product_id)
+    def update(self, product_id, category_id, name, price, stock, image_path=None):
+        query = "UPDATE products SET category_id = %s, name = %s, price = %s, stock = %s, image_path = %s WHERE id = %s"
+        params = (category_id, name, price, stock, image_path, product_id)
         return self.db.execute_query(query, params, commit=True)
 
     def delete(self, product_id):

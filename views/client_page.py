@@ -253,12 +253,28 @@ class ClientPage(ctk.CTkFrame):
             self._create_product_card(self.products_scroll, prod, 0, idx)
 
     def _create_product_card(self, parent, prod, row, col):
-        card = ctk.CTkFrame(parent, fg_color=self.CARD, border_width=1, border_color=self.BORDER, corner_radius=12, width=200, height=140)
+        card = ctk.CTkFrame(parent, fg_color=self.CARD, border_width=1, border_color=self.BORDER, corner_radius=12, width=200, height=240)
         card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
         card.grid_propagate(False)
 
+        # Image handling
+        img_path = prod.get("image_path")
+        import os
+        from PIL import Image
+        if img_path and os.path.exists(img_path):
+            try:
+                raw_img = Image.open(img_path)
+                ctk_img = ctk.CTkImage(light_image=raw_img, dark_image=raw_img, size=(180, 100))
+                img_lbl = ctk.CTkLabel(card, image=ctk_img, text="")
+                img_lbl.pack(pady=(10, 5), padx=10)
+            except Exception:
+                ctk.CTkLabel(card, text="📷", font=ctk.CTkFont(size=40)).pack(pady=(20, 10))
+        else:
+            ctk.CTkLabel(card, text="📷", font=ctk.CTkFont(size=40)).pack(pady=(20, 10))
+
+        # Truncate long names
         name = prod['name'] if len(prod['name']) <= 18 else prod['name'][:16] + ".."
-        ctk.CTkLabel(card, text=name, font=ctk.CTkFont(size=14, weight="bold"), text_color=self.TEXT).pack(pady=(15, 2))
+        ctk.CTkLabel(card, text=name, font=ctk.CTkFont(size=14, weight="bold"), text_color=self.TEXT).pack(pady=(5, 2))
         
         cat = prod.get('category_name', 'Misc')
         ctk.CTkLabel(card, text=cat, font=ctk.CTkFont(size=11), text_color=self.MUTED).pack()
@@ -266,6 +282,7 @@ class ClientPage(ctk.CTkFrame):
         price = float(prod['price'])
         ctk.CTkLabel(card, text=f"{price:.2f} TND", font=ctk.CTkFont(size=16, weight="bold"), text_color=self.ACCENT).pack(pady=(5, 5))
 
+        # Add to cart button
         ctk.CTkButton(
             card, text="Add to Cart", height=30, corner_radius=8, font=ctk.CTkFont(size=12),
             fg_color="#252545", hover_color=self.BORDER, text_color=self.TEXT,

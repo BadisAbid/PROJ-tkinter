@@ -1,6 +1,7 @@
 
 import customtkinter as ctk
 from tkinter import messagebox
+from PIL import Image
 from views.base_page import BasePage
 
 # =============================================
@@ -142,14 +143,11 @@ class ProductPage(BasePage):
         self.panel.grid(row=0, column=1, sticky="nsew")
         self.panel.grid_propagate(False)
 
-        # Panel title
-        self.panel_title = ctk.CTkLabel(
-            self.panel,
-            text="➕  New Product",
-            font=ctk.CTkFont(size=16, weight="bold"),
-            text_color=self.ACCENT,
-        )
-        self.panel_title.pack(pady=(22, 14), padx=20, anchor="w")
+        self.panel_title.pack(pady=(22, 10), padx=20, anchor="w")
+
+        # ---- IMAGE PREVIEW ----
+        self.img_preview = ctk.CTkLabel(self.panel, text="No Image", width=240, height=120, fg_color="#1a1a2e", corner_radius=10)
+        self.img_preview.pack(pady=(0, 15), padx=20)
 
         # ---- NAME ----
         ctk.CTkLabel(self.panel, text="Product Name", font=ctk.CTkFont(size=12, weight="bold"),
@@ -188,15 +186,16 @@ class ProductPage(BasePage):
         )
         self.price_entry.pack(fill="x", padx=20, pady=(4, 12))
 
-        # ---- STOCK ----
-        ctk.CTkLabel(self.panel, text="Stock Quantity", font=ctk.CTkFont(size=12, weight="bold"),
+        # ---- IMAGE PATH ----
+        ctk.CTkLabel(self.panel, text="Image Path", font=ctk.CTkFont(size=12, weight="bold"),
                      text_color=self.TEXT, anchor="w").pack(fill="x", padx=20)
-        self.stock_entry = ctk.CTkEntry(
-            self.panel, placeholder_text="e.g. 50",
+        self.image_entry = ctk.CTkEntry(
+            self.panel, placeholder_text="assets/products/item.png",
             height=38, corner_radius=8,
             border_color=self.BORDER, fg_color="#252545", text_color="#fff",
         )
-        self.stock_entry.pack(fill="x", padx=20, pady=(4, 20))
+        self.image_entry.pack(fill="x", padx=20, pady=(4, 15))
+        self.image_entry.bind("<KeyRelease>", lambda e: self._update_preview())
 
         # ---- SAVE BUTTON ----
         self.save_btn = ctk.CTkButton(
@@ -235,7 +234,7 @@ class ProductPage(BasePage):
             tag = "odd" if i % 2 == 0 else "even"
             self.tree.insert("", "end",
                              values=(p["id"], p["name"], p.get("category_name", ""),
-                                     p["price"], p["stock"]),
+                                     p["price"], p["stock"], p.get("image_path", "")),
                              tags=(tag,))
 
     def _on_search(self, _event=None):
@@ -261,6 +260,8 @@ class ProductPage(BasePage):
         self.name_entry.delete(0, "end")
         self.price_entry.delete(0, "end")
         self.stock_entry.delete(0, "end")
+        self.image_entry.delete(0, "end")
+        self.img_preview.configure(image=None, text="No Image")
         # Refresh category list in case new ones were added
         cats = self.controller.get_categories() or []
         self._cat_names = [c["name"] for c in cats]
@@ -296,6 +297,25 @@ class ProductPage(BasePage):
         self.stock_entry.delete(0, "end")
         self.stock_entry.insert(0, str(vals[4]))
 
+        self.image_entry.delete(0, "end")
+        img_path = str(vals[5]) if len(vals) > 5 else ""
+        self.image_entry.insert(0, img_path)
+        self._update_preview()
+
+    def _update_preview(self):
+        """Update the side panel image preview."""
+        path = self.image_entry.get().strip()
+        import os
+        if path and os.path.exists(path):
+            try:
+                raw_img = Image.open(path)
+                ctk_img = ctk.CTkImage(light_image=raw_img, dark_image=raw_img, size=(240, 120))
+                self.img_preview.configure(image=ctk_img, text="")
+            except Exception:
+                self.img_preview.configure(image=None, text="Invalid Image")
+        else:
+            self.img_preview.configure(image=None, text="No Image")
+
     def _get_cat_id(self, name):
         """Return the category ID for a given category name."""
         for c in (self.controller.get_categories() or []):
@@ -312,6 +332,7 @@ class ProductPage(BasePage):
         name  = self.name_entry.get().strip()
         price = self.price_entry.get().strip()
         stock = self.stock_entry.get().strip()
+        img_p = self.image_entry.get().strip() or None
         cat_name = self.cat_combo.get()
         cat_id   = self._get_cat_id(cat_name)
 
@@ -341,11 +362,11 @@ class ProductPage(BasePage):
             if self._editing_id:
                 # UPDATE existing product
                 self.controller.product_model.update(
-                    self._editing_id, cat_id, name, price_val, stock_val)
+                    self._editing_id, cat_id, name, price_val, stock_val, img_p)
                 messagebox.showinfo("Updated ✅", f"'{name}' has been updated!", parent=self.winfo_toplevel())
             else:
                 # ADD new product
-                ok, msg = self.controller.add_product(cat_id, name, price_val, stock_val)
+                ok, msg = self.controller.add_product(cat_id, name, price_val, stock_val, img_p)
                 if not ok:
                     messagebox.showerror("Error", msg, parent=self.winfo_toplevel())
                     return
