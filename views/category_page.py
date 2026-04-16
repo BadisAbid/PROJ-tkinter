@@ -140,6 +140,8 @@ class CategoryPage(BasePage):
         for cat in categories:
             self.insert_row((cat["id"], cat["name"], cat.get("description", "")))
 
+    def _create_category_card(self, idx, cat):
+        """Helper to create a single category card in the scrollable grid."""
         # Pick an emoji icon based on name mapping
         name_key = cat["name"]
         icon = CATEGORY_ICONS.get(name_key, CATEGORY_ICONS["Default"])
@@ -167,6 +169,7 @@ class CategoryPage(BasePage):
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color=self.ACCENT,
         ).pack()
+
 
     # ==================================================
     #  SEARCH

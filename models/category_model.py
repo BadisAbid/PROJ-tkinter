@@ -7,7 +7,9 @@ class CategoryModel:
     def create(self, name, description):
         query = "INSERT INTO categories (name, description) VALUES (%s, %s)"
         params = (name, description)
-        return self.db.execute_query(query, params, commit=True)
+        return self.db.execute_query(
+            query, params, commit=True
+            )
 
     def get_all(self):
         query = "SELECT * FROM categories ORDER BY name ASC"
