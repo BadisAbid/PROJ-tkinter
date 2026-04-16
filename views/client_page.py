@@ -1,6 +1,9 @@
 import customtkinter as ctk
 from tkinter import messagebox
 from views.payment_modal import PaymentModal
+import urllib.request
+import io
+from PIL import Image
 
 class ClientPage(ctk.CTkFrame):
     BG     = "#0d0d1a"
@@ -18,15 +21,20 @@ class ClientPage(ctk.CTkFrame):
         
         self.cart = {} # Dictionary: {product_id: {"name": str, "price": float, "qty": int}}
         self.all_products = []
+        self.image_cache = {} # {url: CTkImage}
         self.current_view = "Shop"  # "Shop" or "Orders"
         
         # --- TOP LEVEL CONTAINERS ---
         # The header stays visible
         self._build_header()
         
-        # The content area switches
         self.content_area = ctk.CTkFrame(self, fg_color="transparent")
         self.content_area.grid(row=1, column=0, columnspan=2, sticky="nsew")
+        
+        # KEY: Make content area expand to fill width
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
+
         self.content_area.grid_rowconfigure(0, weight=1)
         self.content_area.grid_columnconfigure(0, weight=1)
 
@@ -174,6 +182,10 @@ class ClientPage(ctk.CTkFrame):
     def _build_orders_view(self):
         self.orders_view = ctk.CTkFrame(self.content_area, fg_color="transparent")
         
+        # Ensure view stretches
+        self.orders_view.grid_columnconfigure(0, weight=1)
+        self.orders_view.grid_rowconfigure(1, weight=1)
+        
         ctk.CTkLabel(
             self.orders_view, text="📦  My Order History & Notifications",
             font=ctk.CTkFont(size=22, weight="bold"), text_color=self.TEXT
@@ -186,6 +198,10 @@ class ClientPage(ctk.CTkFrame):
 
         self.orders_scroll = ctk.CTkScrollableFrame(self.orders_view, fg_color="transparent")
         self.orders_scroll.pack(fill="both", expand=True, padx=40, pady=(0, 30))
+        
+        # KEY: Ensure the internal container of the scrollable frame fills width too
+        # Tkinter hack: scrollableframe._parent_canvas.winfo_width()
+        # but better to just use fill="x" on the content blocks inside.
 
     def _refresh_orders(self):
         for w in self.orders_scroll.winfo_children():
@@ -253,28 +269,19 @@ class ClientPage(ctk.CTkFrame):
             self._create_product_card(self.products_scroll, prod, 0, idx)
 
     def _create_product_card(self, parent, prod, row, col):
-        card = ctk.CTkFrame(parent, fg_color=self.CARD, border_width=1, border_color=self.BORDER, corner_radius=12, width=200, height=240)
+        card = ctk.CTkFrame(parent, fg_color=self.CARD, border_width=1, border_color=self.BORDER, corner_radius=12, width=200, height=200)
         card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
         card.grid_propagate(False)
 
-        # Image handling
-        img_path = prod.get("image_path")
-        import os
-        from PIL import Image
-        if img_path and os.path.exists(img_path):
-            try:
-                raw_img = Image.open(img_path)
-                ctk_img = ctk.CTkImage(light_image=raw_img, dark_image=raw_img, size=(180, 100))
-                img_lbl = ctk.CTkLabel(card, image=ctk_img, text="")
-                img_lbl.pack(pady=(10, 5), padx=10)
-            except Exception:
-                ctk.CTkLabel(card, text="📷", font=ctk.CTkFont(size=40)).pack(pady=(20, 10))
-        else:
-            ctk.CTkLabel(card, text="📷", font=ctk.CTkFont(size=40)).pack(pady=(20, 10))
+        # Image Holder
+        img_url = prod.get('image_url')
+        ctk_img = self._get_image(img_url)
+        
+        img_label = ctk.CTkLabel(card, text="" if ctk_img else "🖼️", image=ctk_img, height=80)
+        img_label.pack(pady=(10, 5), padx=10, fill="both")
 
-        # Truncate long names
         name = prod['name'] if len(prod['name']) <= 18 else prod['name'][:16] + ".."
-        ctk.CTkLabel(card, text=name, font=ctk.CTkFont(size=14, weight="bold"), text_color=self.TEXT).pack(pady=(5, 2))
+        ctk.CTkLabel(card, text=name, font=ctk.CTkFont(size=14, weight="bold"), text_color=self.TEXT).pack(pady=(0, 2))
         
         cat = prod.get('category_name', 'Misc')
         ctk.CTkLabel(card, text=cat, font=ctk.CTkFont(size=11), text_color=self.MUTED).pack()
@@ -282,12 +289,35 @@ class ClientPage(ctk.CTkFrame):
         price = float(prod['price'])
         ctk.CTkLabel(card, text=f"{price:.2f} TND", font=ctk.CTkFont(size=16, weight="bold"), text_color=self.ACCENT).pack(pady=(5, 5))
 
-        # Add to cart button
         ctk.CTkButton(
             card, text="Add to Cart", height=30, corner_radius=8, font=ctk.CTkFont(size=12),
             fg_color="#252545", hover_color=self.BORDER, text_color=self.TEXT,
             command=lambda p=prod: self._add_to_cart(p)
         ).pack(fill="x", padx=15, side="bottom", pady=(0, 15))
+
+    def _get_image(self, url):
+        """Fetch and cache image from URL. Returns a CTkImage or None."""
+        if not url or not url.startswith("http"):
+            return None
+        
+        if url in self.image_cache:
+            return self.image_cache[url]
+
+        try:
+            # Basic download (timeout 3s to stay responsive)
+            with urllib.request.urlopen(url, timeout=3) as response:
+                img_data = response.read()
+            
+            pil_img = Image.open(io.BytesIO(img_data))
+            # Resize for the card
+            pil_img = pil_img.resize((180, 80), Image.Resampling.LANCZOS)
+            
+            ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(180, 80))
+            self.image_cache[url] = ctk_img
+            return ctk_img
+        except Exception as e:
+            print(f"Error loading image {url}: {e}")
+            return None
 
     def _add_to_cart(self, prod):
         pid = prod['id']

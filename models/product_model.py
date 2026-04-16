@@ -4,9 +4,9 @@ class ProductModel:
     def __init__(self):
         self.db = Database()
 
-    def create(self, category_id, name, price, stock, image_path=None):
-        query = "INSERT INTO products (category_id, name, price, stock, image_path) VALUES (%s, %s, %s, %s, %s)"
-        params = (category_id, name, price, stock, image_path)
+    def create(self, category_id, name, price, stock, image_url=None):
+        query = "INSERT INTO products (category_id, name, price, stock, image_url) VALUES (%s, %s, %s, %s, %s)"
+        params = (category_id, name, price, stock, image_url)
         return self.db.execute_query(query, params, commit=True)
 
     def get_all_with_category(self):
@@ -18,9 +18,9 @@ class ProductModel:
         """
         return self.db.fetch_all(query)
 
-    def update(self, product_id, category_id, name, price, stock, image_path=None):
-        query = "UPDATE products SET category_id = %s, name = %s, price = %s, stock = %s, image_path = %s WHERE id = %s"
-        params = (category_id, name, price, stock, image_path, product_id)
+    def update(self, product_id, category_id, name, price, stock, image_url=None):
+        query = "UPDATE products SET category_id = %s, name = %s, price = %s, stock = %s, image_url = %s WHERE id = %s"
+        params = (category_id, name, price, stock, image_url, product_id)
         return self.db.execute_query(query, params, commit=True)
 
     def delete(self, product_id):
@@ -44,7 +44,7 @@ class ProductModel:
     def get_all_with_details(self):
         """Get all products with complete details for dashboard"""
         query = """
-            SELECT p.id, p.name, p.price, p.stock, p.category_id, c.name as category_name
+            SELECT p.id, p.name, p.price, p.stock, p.category_id, p.image_url, c.name as category_name
             FROM products p
             JOIN categories c ON p.category_id = c.id
             ORDER BY p.stock DESC

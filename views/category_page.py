@@ -10,24 +10,24 @@ from views.base_page import BasePage
 #  Users can Add / Edit / Delete categories.
 # =============================================
 
-# Smart Category Emojis — mapping names to icons
-CATEGORY_ICON_MAP = {
-    "Electronics": "📱",
-    "Computers": "💻",
-    "Laptops": "💻",
-    "Smartphones": "📱",
-    "Audio": "🎧",
-    "Headphones": "🎧",
-    "Gaming": "🎮",
-    "Food": "🍎",
-    "Beverages": "🥤",
-    "Health": "💊",
+# Category icons mapping — matching names exactly to emojis
+CATEGORY_ICONS = {
+    "Bakery": "🥖",
+    "Beveranges": "🥤",
     "Clothing": "👕",
-    "Home": "🏠",
-    "Office": "💼",
-    "Misc": "📂"
+    "Dairy & Eggs": "🥛",
+    "Electronics": "💻",
+    "Frozen Foods": "🧊",
+    "Fruits & Vegetables": "🥦",
+    "Home & Kitchen": "🏠",
+    "Household Items": "🧹",
+    "juices": "🍹",
+    "Meat & Seafood": "🥩",
+    "Pantry Staples": "🥫",
+    "Personal Care": "🧴",
+    "Snacks & Sweets": "🍩",
+    "Default": "📂"
 }
-DEFAULT_ICON = "📂"
 
 
 class CategoryPage(BasePage):
@@ -140,11 +140,9 @@ class CategoryPage(BasePage):
         for cat in categories:
             self.insert_row((cat["id"], cat["name"], cat.get("description", "")))
 
-    def _create_category_card(self, idx, cat):
-        """Create one visual card for a category."""
-        # Pick an emoji based on the category name
-        name_raw = cat["name"]
-        icon = CATEGORY_ICON_MAP.get(name_raw, DEFAULT_ICON)
+        # Pick an emoji icon based on name mapping
+        name_key = cat["name"]
+        icon = CATEGORY_ICONS.get(name_key, CATEGORY_ICONS["Default"])
 
         card = ctk.CTkFrame(
             self.card_scroll,
