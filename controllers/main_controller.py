@@ -107,3 +107,15 @@ class MainController:
             return True, "Account created successfully"
         except Exception as e:
             return False, str(e)
+    # Order Actions
+    def get_customer_orders(self, username):
+        """Fetch all orders for a specific customer"""
+        return self.order_model.get_by_customer(username)
+
+    def update_order_status(self, order_id, status):
+        """Update the status of an order"""
+        try:
+            self.order_model.update_status(order_id, status)
+            return True, "Order status updated"
+        except Exception as e:
+            return False, str(e)

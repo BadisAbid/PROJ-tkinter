@@ -22,6 +22,22 @@ class OrderModel:
         query = "SELECT COUNT(*) as order_count, SUM(total_price) as total_revenue FROM orders"
         return self.db.fetch_one(query)
 
+    def get_by_customer(self, customer_name):
+        """Fetch all orders for a specific customer with product details"""
+        query = """
+            SELECT o.*, p.name as product_name 
+            FROM orders o 
+            JOIN products p ON o.product_id = p.id 
+            WHERE o.customer_name = %s
+            ORDER BY o.order_date DESC
+        """
+        return self.db.fetch_all(query, (customer_name,))
+
+    def update_status(self, order_id, status):
+        """Update the status of an order: 0=Pending, 1=Accepted, 2=Rejected"""
+        query = "UPDATE orders SET status = %s WHERE id = %s"
+        return self.db.execute_query(query, (status, order_id), commit=True)
+
     def delete(self, order_id):
         query = "DELETE FROM orders WHERE id = %s"
         return self.db.execute_query(query, (order_id,), commit=True)

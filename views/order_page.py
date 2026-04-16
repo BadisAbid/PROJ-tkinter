@@ -44,8 +44,45 @@ class OrderPage(BasePage):
         ).pack(side="right", padx=(6, 0))
 
         # ---- TABLE ----
-        self.setup_treeview(("ID", "Product", "Quantity", "Total Price", "Status", "Date"))
+        self.setup_treeview(("ID", "Customer", "Product", "Qty", "Price", "Status", "Date"))
+        
+        # ---- ACTIONS ----
+        actions = ctk.CTkFrame(self, fg_color=self.CARD, corner_radius=12, border_width=1, border_color=self.BORDER)
+        actions.pack(fill="x", padx=20, pady=20)
+        
+        ctk.CTkLabel(actions, text="Order Actions:", font=ctk.CTkFont(size=13, weight="bold")).pack(side="left", padx=20, pady=15)
+        
+        self.btn_accept = ctk.CTkButton(
+            actions, text="✅  Accept Order",
+            height=36, corner_radius=8,
+            fg_color="#1a3a2a", hover_color="#1e4a33", text_color="#6be585",
+            command=lambda: self._update_status(1)
+        )
+        self.btn_accept.pack(side="left", padx=5)
+        
+        self.btn_reject = ctk.CTkButton(
+            actions, text="❌  Reject Order",
+            height=36, corner_radius=8,
+            fg_color="#3a1a1a", hover_color="#4a1e1e", text_color="#e56b6b",
+            command=lambda: self._update_status(2)
+        )
+        self.btn_reject.pack(side="left", padx=5)
+        
         self._refresh()
+
+    def _update_status(self, status):
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("Selection", "Please select an order first.")
+            return
+            
+        order_id = self.tree.item(selected[0])['values'][0]
+        success, msg = self.controller.update_order_status(order_id, status)
+        
+        if success:
+            self._refresh()
+        else:
+            messagebox.showerror("Error", msg)
 
     def _refresh(self):
         for row in self.tree.get_children():
@@ -55,19 +92,32 @@ class OrderPage(BasePage):
             orders = self.controller.order_model.get_all_with_product() or []
         except Exception:
             pass
-        for i, o in enumerate(orders):
-            tag = "odd" if i % 2 == 0 else "even"
             
+        # Configure status colors
+        self.tree.tag_configure("pending", foreground="#ffc107") # Yellow
+        self.tree.tag_configure("accepted", foreground="#28a745") # Green
+        self.tree.tag_configure("rejected", foreground="#dc3545") # Red
+
+        for i, o in enumerate(orders):
             # Format status
             raw_status = o.get("status", 0)
-            status_text = "Paid" if raw_status == 1 else "Pending (0)"
+            status_text = "Pending"
+            tag = "pending"
+            
+            if raw_status == 1:
+                status_text = "Accepted"
+                tag = "accepted"
+            elif raw_status == 2:
+                status_text = "Rejected"
+                tag = "rejected"
 
             self.tree.insert("", "end",
                              values=(
                                  o.get("id", ""),
-                                 o.get("product_name", o.get("product", "")),
+                                 o.get("customer_name", ""),
+                                 o.get("product_name", ""),
                                  o.get("quantity", ""),
-                                 o.get("total_price", ""),
+                                 f"{o.get('total_price', 0):.2f} TND",
                                  status_text,
                                  o.get("order_date", "")
                              ),

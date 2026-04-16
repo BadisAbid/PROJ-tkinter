@@ -201,5 +201,6 @@ class LoginPage(ctk.CTkFrame):
                 parent=self.winfo_toplevel(),
             )
         finally:
-            # Reset button
-            self.login_btn.configure(text="Sign In  →", state="normal")
+            # Reset button (Check if widget still exists in case of successful login/switch)
+            if self.winfo_exists():
+                self.login_btn.configure(text="Sign In  →", state="normal")
