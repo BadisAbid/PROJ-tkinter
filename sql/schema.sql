@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS orders (
     customer_name VARCHAR(100) NOT NULL,
     quantity INT NOT NULL DEFAULT 1,
     total_price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    status INT DEFAULT 0,
     order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
@@ -39,5 +40,6 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'client') DEFAULT 'client',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;

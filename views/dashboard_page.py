@@ -1,389 +1,279 @@
+
 import customtkinter as ctk
 from datetime import datetime
-import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-import numpy as np
 
-# Use non-interactive backend
-matplotlib.use('TkAgg')
+matplotlib.use("TkAgg")
+
+# =============================================
+#  DASHBOARD PAGE
+#  Shows stat cards + two charts.
+#  Beginner-friendly: every section is a
+#  clearly named method.
+# =============================================
 
 class DashboardPage(ctk.CTkFrame):
+
+    BG     = "#0d0d1a"
+    CARD   = "#1a1a2e"
+    BORDER = "#3a3a6e"
+    ACCENT = "#7c83fd"
+    TEXT   = "#ccccdd"
+    MUTED  = "#888899"
+
     def __init__(self, parent, controller):
-        super().__init__(parent)
+        super().__init__(parent, fg_color=self.BG)
         self.controller = controller
 
-        # Configure main frame
-        self.configure(fg_color="#0a0a0a")
+        # We wrap everything in a scrollable frame so the
+        # user can scroll if the window is small
+        self.scroll = ctk.CTkScrollableFrame(self, fg_color=self.BG)
+        self.scroll.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Create scrollable frame
-        self.scroll_frame = ctk.CTkScrollableFrame(
-            self,
-            fg_color="#0a0a0a",
-            label_text="Dashboard",
-            label_font=ctk.CTkFont(size=20, weight="bold")
-        )
-        self.scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        self._build_header()
+        self._build_stat_cards()
+        self._build_charts()
+        self._build_quick_actions()
 
-        # Create dashboard sections
-        self.create_header_section()
-        self.create_welcome_section()
-        self.create_stats_section()
-        self.create_graphs_section()
-        self.create_quick_actions_section()
+        # Load real data
+        self._refresh()
 
-        # Initial data load
-        self.refresh_stats()
+    # ==================================================
+    #  HEADER
+    # ==================================================
 
-    def create_header_section(self):
-        """Create the header section with logo and navigation"""
-        # Header frame
-        self.header_frame = ctk.CTkFrame(
-            self.scroll_frame,
-            fg_color="transparent",
-            height=60
-        )
-        self.header_frame.pack(fill="x", padx=10, pady=(10, 0))
-        self.header_frame.pack_propagate(False)
+    def _build_header(self):
+        row = ctk.CTkFrame(self.scroll, fg_color="transparent")
+        row.pack(fill="x", padx=10, pady=(10, 0))
 
-        # Dashboard icon and title
-        self.icon_label = ctk.CTkLabel(
-            self.header_frame,
-            text="📊",
-            font=ctk.CTkFont(size=32)
-        )
-        self.icon_label.pack(side="left")
-
-        self.title_label = ctk.CTkLabel(
-            self.header_frame,
-            text="Dashboard",
+        ctk.CTkLabel(
+            row, text="📊  Dashboard",
             font=ctk.CTkFont(size=24, weight="bold"),
-            text_color="#ffffff"
-        )
-        self.title_label.pack(side="left", padx=(15, 0))
+            text_color=self.ACCENT,
+        ).pack(side="left")
 
-        # Current date/time
-        self.datetime_label = ctk.CTkLabel(
-            self.header_frame,
-            text=datetime.now().strftime("%B %d, %Y • %I:%M %p"),
+        self.clock_label = ctk.CTkLabel(
+            row, text="",
             font=ctk.CTkFont(size=12),
-            text_color="#a0a0a0"
+            text_color=self.MUTED,
         )
-        self.datetime_label.pack(side="right")
+        self.clock_label.pack(side="right")
 
-        # Refresh button
-        self.refresh_btn = ctk.CTkButton(
-            self.header_frame,
-            text="🔄",
-            width=40,
-            height=40,
-            corner_radius=8,
-            fg_color="#2a2a2a",
-            hover_color="#404040",
-            command=self.refresh_stats
+        ctk.CTkButton(
+            row, text="🔄  Refresh",
+            height=34, corner_radius=8,
+            fg_color=self.CARD, hover_color="#252545",
+            border_width=1, border_color=self.BORDER,
+            text_color=self.TEXT, font=ctk.CTkFont(size=13),
+            command=self._refresh,
+        ).pack(side="right", padx=(0, 10))
+
+        ctk.CTkLabel(
+            self.scroll,
+            text="Welcome back! Here's your store overview.",
+            font=ctk.CTkFont(size=14),
+            text_color=self.MUTED,
+            anchor="w",
+        ).pack(fill="x", padx=15, pady=(4, 16))
+
+    # ==================================================
+    #  STAT CARDS AREA
+    # ==================================================
+
+    def _build_stat_cards(self):
+        ctk.CTkLabel(
+            self.scroll, text="Business Statistics",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color=self.TEXT, anchor="w",
+        ).pack(fill="x", padx=15, pady=(0, 10))
+
+        # This frame will hold the 4 stat cards side by side
+        self.cards_frame = ctk.CTkFrame(self.scroll, fg_color="transparent")
+        self.cards_frame.pack(fill="x", padx=10)
+
+    def _create_stat_card(self, col, icon, title, value, color):
+        """Create one stat card inside cards_frame."""
+        card = ctk.CTkFrame(
+            self.cards_frame,
+            fg_color=self.CARD,
+            border_width=1,
+            border_color=self.BORDER,
+            corner_radius=14,
         )
-        self.refresh_btn.pack(side="right", padx=(10, 0))
+        card.grid(row=0, column=col, padx=8, pady=8, sticky="ew")
+        self.cards_frame.grid_columnconfigure(col, weight=1)
 
-    def create_welcome_section(self):
-        """Create the welcome message section"""
-        # Welcome frame
-        self.welcome_frame = ctk.CTkFrame(
-            self.scroll_frame,
-            fg_color="transparent"
+        ctk.CTkLabel(card, text=icon, font=ctk.CTkFont(size=36)).pack(pady=(18, 4))
+        ctk.CTkLabel(card, text=value,
+                     font=ctk.CTkFont(size=26, weight="bold"),
+                     text_color=color).pack()
+        ctk.CTkLabel(card, text=title,
+                     font=ctk.CTkFont(size=12),
+                     text_color=self.MUTED).pack(pady=(2, 16))
+
+    # ==================================================
+    #  CHARTS AREA
+    # ==================================================
+
+    def _build_charts(self):
+        ctk.CTkLabel(
+            self.scroll, text="Analytics & Insights",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color=self.TEXT, anchor="w",
+        ).pack(fill="x", padx=15, pady=(20, 10))
+
+        self.charts_frame = ctk.CTkFrame(self.scroll, fg_color="transparent")
+        self.charts_frame.pack(fill="both", expand=True, padx=10)
+
+    def _draw_charts(self):
+        """Draw bar chart (products) and pie chart (categories)."""
+        # Destroy old charts before redrawing
+        for w in self.charts_frame.winfo_children():
+            w.destroy()
+
+        # Close any lingering matplotlib figures to free memory
+        plt.close("all")
+
+        products   = self.controller.get_all_products() or []
+        categories = self.controller.get_all_categories() or []
+
+        # ---- BAR CHART ----
+        bar_container = ctk.CTkFrame(
+            self.charts_frame,
+            fg_color=self.CARD, border_width=1,
+            border_color=self.BORDER, corner_radius=14,
         )
-        self.welcome_frame.pack(fill="x", padx=10, pady=(5, 10))
+        bar_container.grid(row=0, column=0, padx=8, pady=8, sticky="nsew")
+        self.charts_frame.grid_columnconfigure(0, weight=1)
 
-        # Welcome message
-        self.welcome_label = ctk.CTkLabel(
-            self.welcome_frame,
-            text="Welcome back! Here's your business overview.",
-            font=ctk.CTkFont(size=16),
-            text_color="#a0a0a0"
+        if products:
+            names  = [p["name"][:12] for p in products[:10]]   # limit to 10
+            stocks = [p["stock"] for p in products[:10]]
+
+            fig1 = Figure(figsize=(5, 3.2), dpi=80, facecolor="#1a1a2e")
+            ax1  = fig1.add_subplot(111, facecolor="#1a1a2e")
+            ax1.bar(range(len(names)), stocks, color="#7c83fd",
+                    edgecolor="#3a3a6e", linewidth=1.2)
+            ax1.set_xticks(range(len(names)))
+            ax1.set_xticklabels(names, rotation=40, ha="right",
+                                color="#888899", fontsize=8)
+            ax1.set_ylabel("Stock", color="#888899", fontsize=9)
+            ax1.set_title("Top Product Stock Levels", color="#ccccdd",
+                          fontsize=11, weight="bold", pad=10)
+            ax1.tick_params(colors="#888899")
+            ax1.grid(axis="y", alpha=0.2, color="#3a3a6e", linestyle="--")
+            for sp in ax1.spines.values():
+                sp.set_color("#3a3a6e")
+            fig1.tight_layout()
+
+            canvas1 = FigureCanvasTkAgg(fig1, master=bar_container)
+            canvas1.draw()
+            canvas1.get_tk_widget().pack(fill="both", expand=True, padx=8, pady=8)
+        else:
+            ctk.CTkLabel(bar_container, text="No product data yet.",
+                         text_color=self.MUTED, font=ctk.CTkFont(size=13)).pack(pady=50)
+
+        # ---- PIE CHART ----
+        pie_container = ctk.CTkFrame(
+            self.charts_frame,
+            fg_color=self.CARD, border_width=1,
+            border_color=self.BORDER, corner_radius=14,
         )
-        self.welcome_label.pack(anchor="w")
+        pie_container.grid(row=0, column=1, padx=8, pady=8, sticky="nsew")
+        self.charts_frame.grid_columnconfigure(1, weight=1)
 
-    def create_stats_section(self):
-        """Create the statistics cards section"""
-        # Stats container
-        self.stats_container = ctk.CTkFrame(
-            self.scroll_frame,
-            fg_color="transparent"
-        )
-        self.stats_container.pack(fill="x", padx=10, pady=(0, 15))
+        valid_cats = [c for c in categories if c.get("product_count", 0) > 0]
+        if valid_cats:
+            names2  = [c["name"] for c in valid_cats]
+            counts2 = [c["product_count"] for c in valid_cats]
+            colors  = ["#7c83fd", "#28a745", "#ffc107", "#dc3545",
+                       "#17a2b8", "#fd7c83", "#a3fd7c"]
 
-        # Section title
-        self.stats_title = ctk.CTkLabel(
-            self.stats_container,
-            text="Business Statistics",
-            font=ctk.CTkFont(size=18, weight="bold"),
-            text_color="#ffffff"
-        )
-        self.stats_title.pack(anchor="w", pady=(0, 15))
+            fig2 = Figure(figsize=(5, 3.2), dpi=80, facecolor="#1a1a2e")
+            ax2  = fig2.add_subplot(111, facecolor="#1a1a2e")
+            ax2.pie(counts2, labels=names2, autopct="%1.0f%%",
+                    colors=colors[:len(names2)], startangle=90,
+                    textprops={"color": "#ccccdd", "fontsize": 9})
+            ax2.set_title("Products by Category", color="#ccccdd",
+                          fontsize=11, weight="bold", pad=10)
+            fig2.tight_layout()
 
-        # Stats grid frame
-        self.stats_frame = ctk.CTkFrame(
-            self.stats_container,
-            fg_color="transparent"
-        )
-        self.stats_frame.pack(fill="x")
+            canvas2 = FigureCanvasTkAgg(fig2, master=pie_container)
+            canvas2.draw()
+            canvas2.get_tk_widget().pack(fill="both", expand=True, padx=8, pady=8)
+        else:
+            ctk.CTkLabel(pie_container, text="No category data yet.",
+                         text_color=self.MUTED, font=ctk.CTkFont(size=13)).pack(pady=50)
 
-    def create_graphs_section(self):
-        """Create the graphs section for products and categories"""
-        # Graphs container
-        self.graphs_container = ctk.CTkFrame(
-            self.scroll_frame,
-            fg_color="transparent"
-        )
-        self.graphs_container.pack(fill="both", expand=True, padx=10, pady=(0, 15))
+    # ==================================================
+    #  QUICK ACTIONS
+    # ==================================================
 
-        # Section title
-        self.graphs_title = ctk.CTkLabel(
-            self.graphs_container,
-            text="Analytics & Insights",
-            font=ctk.CTkFont(size=18, weight="bold"),
-            text_color="#ffffff"
-        )
-        self.graphs_title.pack(anchor="w", pady=(0, 15))
+    def _build_quick_actions(self):
+        ctk.CTkLabel(
+            self.scroll, text="Quick Actions",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color=self.TEXT, anchor="w",
+        ).pack(fill="x", padx=15, pady=(20, 10))
 
-        # Graphs grid frame
-        self.graphs_frame = ctk.CTkFrame(
-            self.graphs_container,
-            fg_color="transparent"
-        )
-        self.graphs_frame.pack(fill="both", expand=True)
+        actions_frame = ctk.CTkFrame(self.scroll, fg_color="transparent")
+        actions_frame.pack(fill="x", padx=10, pady=(0, 20))
 
-    def create_quick_actions_section(self):
-        """Create the quick actions section"""
-        # Actions container
-        self.actions_container = ctk.CTkFrame(
-            self.scroll_frame,
-            fg_color="transparent"
-        )
-        self.actions_container.pack(fill="x", padx=10, pady=(0, 20))
-
-        # Section title
-        self.actions_title = ctk.CTkLabel(
-            self.actions_container,
-            text="Quick Actions",
-            font=ctk.CTkFont(size=18, weight="bold"),
-            text_color="#ffffff"
-        )
-        self.actions_title.pack(anchor="w", pady=(0, 15))
-
-        # Actions grid
-        self.actions_frame = ctk.CTkFrame(
-            self.actions_container,
-            fg_color="transparent"
-        )
-        self.actions_frame.pack(fill="x")
-
-        # Action buttons - removed Counter
         actions = [
-            ("📦", "Manage Products", "Products"),
-            ("📂", "Manage Categories", "Categories"),
-            ("🛒", "View Orders", "Orders")
+            ("📦", "Manage Products",   "Products",   "#7c83fd"),
+            ("📂", "Manage Categories", "Categories", "#28a745"),
+            ("🛒", "View Orders",       "Orders",     "#ffc107"),
         ]
-
-        for i, (icon, text, page) in enumerate(actions):
-            action_btn = ctk.CTkButton(
-                self.actions_frame,
-                text=f"{icon} {text}",
+        for i, (icon, label, page, color) in enumerate(actions):
+            btn = ctk.CTkButton(
+                actions_frame,
+                text=f"{icon}  {label}",
+                height=54, corner_radius=12,
                 font=ctk.CTkFont(size=14, weight="bold"),
-                height=50,
-                corner_radius=10,
-                fg_color="#2a2a2a",
-                hover_color="#404040",
-                command=lambda p=page: self.navigate_to_page(p)
+                fg_color=self.CARD, hover_color="#252545",
+                border_width=1, border_color=color,
+                text_color=color,
+                command=lambda p=page: self._go_to(p),
             )
-            action_btn.grid(row=0, column=i, padx=5, pady=5, sticky="ew")
+            btn.grid(row=0, column=i, padx=8, pady=8, sticky="ew")
+            actions_frame.grid_columnconfigure(i, weight=1)
 
-        # Configure grid weights
-        for i in range(len(actions)):
-            self.actions_frame.grid_columnconfigure(i, weight=1)
+    def _go_to(self, page_name):
+        """Climb up the widget tree until we reach the main app and navigate."""
+        w = self
+        while w and not hasattr(w, "show_page"):
+            w = w.master
+        if w:
+            w.show_page(page_name)
 
-    def refresh_stats(self):
-        """Refresh and display statistics"""
+    # ==================================================
+    #  REFRESH — called on load and on Refresh button
+    # ==================================================
+
+    def _refresh(self):
+        # Update clock
+        self.clock_label.configure(
+            text=datetime.now().strftime("%B %d, %Y  •  %I:%M %p")
+        )
+
+        # Get stats from database
         stats = self.controller.get_dashboard_stats()
 
-        # Clear old stats
-        for widget in self.stats_frame.winfo_children():
-            widget.destroy()
+        # Clear old cards and redraw
+        for w in self.cards_frame.winfo_children():
+            w.destroy()
 
-        # Create enhanced stat cards
-        stat_cards = [
-            ("📦", "Total Products", str(stats['total_products']), "#007acc"),
-            ("📊", "Total Stock", str(stats['total_stock']), "#28a745"),
-            ("🛒", "Total Orders", str(stats['total_orders']), "#ffc107"),
-            ("💰", "Total Revenue", f"${stats['total_revenue']:.2f}", "#dc3545")
+        cards_data = [
+            ("📦", "Total Products", str(stats.get("total_products", 0)), "#7c83fd"),
+            ("📊", "Total Stock",    str(stats.get("total_stock", 0)),    "#28a745"),
+            ("🛒", "Total Orders",   str(stats.get("total_orders", 0)),   "#ffc107"),
+            ("💰", "Revenue",  f"${stats.get('total_revenue', 0):.2f}",   "#fd7c83"),
         ]
+        for col, (icon, title, value, color) in enumerate(cards_data):
+            self._create_stat_card(col, icon, title, value, color)
 
-        for i, (icon, title, value, color) in enumerate(stat_cards):
-            self.create_stat_card(i, icon, title, value, color)
-
-        # Refresh graphs
-        self.create_product_graph()
-        self.create_category_graph()
-
-        # Update datetime
-        self.datetime_label.configure(text=datetime.now().strftime("%B %d, %Y • %I:%M %p"))
-
-    def create_stat_card(self, index, icon, title, value, color):
-        """Create an enhanced stat card"""
-        card = ctk.CTkFrame(
-            self.stats_frame,
-            fg_color="#2a2a2a",
-            border_width=1,
-            border_color="#404040",
-            corner_radius=15,
-            width=200,
-            height=120
-        )
-        card.grid(row=0, column=index, padx=8, pady=8)
-        card.grid_propagate(False)
-
-        # Icon
-        icon_label = ctk.CTkLabel(
-            card,
-            text=icon,
-            font=ctk.CTkFont(size=32)
-        )
-        icon_label.pack(pady=(15, 5))
-
-        # Title
-        title_label = ctk.CTkLabel(
-            card,
-            text=title,
-            font=ctk.CTkFont(size=12),
-            text_color="#a0a0a0"
-        )
-        title_label.pack()
-
-        # Value
-        value_label = ctk.CTkLabel(
-            card,
-            text=value,
-            font=ctk.CTkFont(size=20, weight="bold"),
-            text_color=color
-        )
-        value_label.pack(pady=(5, 15))
-
-    def create_product_graph(self):
-        """Create a graph for product distribution"""
-        try:
-            # Clear old graphs
-            for widget in self.graphs_frame.winfo_children():
-                widget.destroy()
-
-            # Get product data from controller
-            products = self.controller.get_all_products()
-
-            if not products:
-                empty_label = ctk.CTkLabel(
-                    self.graphs_frame,
-                    text="No product data available",
-                    text_color="#a0a0a0",
-                    font=ctk.CTkFont(size=14)
-                )
-                empty_label.pack(fill="both", expand=True, pady=20)
-                return
-
-            # Prepare data
-            product_names = [p['name'][:15] for p in products]  # Limit name length
-            product_stock = [p['stock'] for p in products]
-
-            # Create figure with dark theme
-            fig = Figure(figsize=(6, 4), dpi=80, facecolor='#1a1a1a', edgecolor='#2a2a2a')
-            ax = fig.add_subplot(111, facecolor='#1a1a1a')
-
-            # Create bar chart
-            bars = ax.bar(range(len(product_names)), product_stock, color='#007acc', edgecolor='#404040', linewidth=1.5)
-
-            # Customize chart
-            ax.set_xlabel('Products', color='#a0a0a0', fontsize=10)
-            ax.set_ylabel('Stock Quantity', color='#a0a0a0', fontsize=10)
-            ax.set_title('Product Stock Levels', color='#ffffff', fontsize=12, weight='bold', pad=15)
-            ax.set_xticks(range(len(product_names)))
-            ax.set_xticklabels(product_names, rotation=45, ha='right', color='#a0a0a0', fontsize=8)
-            ax.tick_params(colors='#a0a0a0')
-            ax.grid(axis='y', alpha=0.3, color='#404040', linestyle='--')
-
-            # Set spine colors
-            for spine in ax.spines.values():
-                spine.set_color('#404040')
-
-            fig.tight_layout()
-
-            # Create canvas
-            canvas = FigureCanvasTkAgg(fig, master=self.graphs_frame)
-            canvas.draw()
-            canvas.get_tk_widget().pack(side="left", fill="both", expand=True, padx=5, pady=5)
-
-        except Exception as e:
-            error_label = ctk.CTkLabel(
-                self.graphs_frame,
-                text=f"Error loading product graph: {str(e)}",
-                text_color="#dc3545",
-                font=ctk.CTkFont(size=12)
-            )
-            error_label.pack(fill="both", expand=True, pady=20)
-
-    def create_category_graph(self):
-        """Create a graph for category distribution"""
-        try:
-            # Get category data from controller
-            categories = self.controller.get_all_categories()
-
-            if not categories:
-                return
-
-            # Prepare data
-            category_names = [c['name'] for c in categories]
-            category_counts = [c.get('product_count', 0) for c in categories]
-
-            # Only create if there's data
-            if not any(category_counts):
-                return
-
-            # Create figure with dark theme
-            fig = Figure(figsize=(6, 4), dpi=80, facecolor='#1a1a1a', edgecolor='#2a2a2a')
-            ax = fig.add_subplot(111, facecolor='#1a1a1a')
-
-            # Create pie chart
-            colors = ['#007acc', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6f42c1']
-            wedges, texts, autotexts = ax.pie(
-                category_counts,
-                labels=category_names,
-                autopct='%1.1f%%',
-                colors=colors[:len(category_names)],
-                startangle=90,
-                textprops={'color': '#ffffff', 'fontsize': 10}
-            )
-
-            # Customize labels
-            for autotext in autotexts:
-                autotext.set_color('#ffffff')
-                autotext.set_weight('bold')
-                autotext.set_fontsize(9)
-
-            ax.set_title('Product Distribution by Category', color='#ffffff', fontsize=12, weight='bold', pad=15)
-
-            fig.tight_layout()
-
-            # Create canvas
-            canvas = FigureCanvasTkAgg(fig, master=self.graphs_frame)
-            canvas.draw()
-            canvas.get_tk_widget().pack(side="left", fill="both", expand=True, padx=5, pady=5)
-
-        except Exception as e:
-            pass  # Silent fail for category graph
-
-    def navigate_to_page(self, page_name):
-        """Navigate to the specified page"""
-        # This will be handled by the main app's show_page method
-        # We need to find the parent window and call its show_page method
-        current = self
-        while current and not hasattr(current, 'show_page'):
-            current = current.master
-        if current and hasattr(current, 'show_page'):
-            current.show_page(page_name)
+        # Redraw charts
+        self._draw_charts()

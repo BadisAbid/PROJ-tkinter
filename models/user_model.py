@@ -9,11 +9,11 @@ class UserModel:
         """Hash password using SHA-256"""
         return hashlib.sha256(password.encode()).hexdigest()
 
-    def create(self, username, email, password):
+    def create(self, username, email, password, role='client'):
         """Create a new user"""
         hashed_password = self.hash_password(password)
-        query = "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)"
-        params = (username, email, hashed_password)
+        query = "INSERT INTO users (username, email, password, role) VALUES (%s, %s, %s, %s)"
+        params = (username, email, hashed_password, role)
         return self.db.execute_query(query, params, commit=True)
 
     def get_by_username(self, username):

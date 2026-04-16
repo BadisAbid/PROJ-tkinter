@@ -70,7 +70,7 @@ class MainController:
         user = self.user_model.authenticate(username, password)
         return user is not None, user
 
-    def signup(self, username, email, password):
+    def signup(self, username, email, password, role='client'):
         """Create new user account"""
         if not username or not email or not password:
             return False, "Username, email and password are required"
@@ -103,7 +103,7 @@ class MainController:
             return False, "Email already exists"
 
         try:
-            self.user_model.create(username, email, password)
+            self.user_model.create(username, email, password, role)
             return True, "Account created successfully"
         except Exception as e:
             return False, str(e)
