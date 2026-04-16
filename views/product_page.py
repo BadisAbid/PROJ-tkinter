@@ -1,6 +1,9 @@
 
 import customtkinter as ctk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
+import os
+import shutil
+import time
 from views.base_page import BasePage
 
 # =============================================
@@ -198,15 +201,32 @@ class ProductPage(BasePage):
         )
         self.stock_entry.pack(fill="x", padx=20, pady=(4, 12))
 
-        # ---- IMAGE URL ----
-        ctk.CTkLabel(self.panel, text="🖼️ Image URL", font=ctk.CTkFont(size=12, weight="bold"),
+        # ---- IMAGE SELECTOR ----
+        ctk.CTkLabel(self.panel, text="🖼️ Product Image", font=ctk.CTkFont(size=12, weight="bold"),
                      text_color=self.TEXT, anchor="w").pack(fill="x", padx=20)
+        
+        # New: Combined File Picker + URL Field
+        image_picker_frame = ctk.CTkFrame(self.panel, fg_color="transparent")
+        image_picker_frame.pack(fill="x", padx=20, pady=(4, 0))
+
         self.image_entry = ctk.CTkEntry(
-            self.panel, placeholder_text="https://...",
+            image_picker_frame, placeholder_text="URL or local path...",
             height=38, corner_radius=8,
             border_color=self.BORDER, fg_color="#252545", text_color="#fff",
         )
-        self.image_entry.pack(fill="x", padx=20, pady=(4, 20))
+        self.image_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
+
+        ctk.CTkButton(
+            image_picker_frame, text="📂", width=40, height=38, corner_radius=8,
+            fg_color="#252545", hover_color=self.BORDER, text_color=self.TEXT,
+            command=self._pick_image
+        ).pack(side="right")
+
+        self.image_label = ctk.CTkLabel(self.panel, text="No local file selected", font=ctk.CTkFont(size=11), text_color=self.MUTED, anchor="w")
+        self.image_label.pack(fill="x", padx=20, pady=(0, 20))
+
+        # Internal state for local file
+        self._local_image_path = None
 
         # ---- SAVE BUTTON ----
         self.save_btn = ctk.CTkButton(
@@ -267,12 +287,14 @@ class ProductPage(BasePage):
     def _reset_panel(self):
         """Clear all form fields and switch to 'Add' mode."""
         self._editing_id = None
+        self._local_image_path = None
         self.panel_title.configure(text="➕  New Product")
         self.save_btn.configure(text="💾  Save Product", fg_color=self.ACCENT)
         self.name_entry.delete(0, "end")
         self.price_entry.delete(0, "end")
         self.stock_entry.delete(0, "end")
         self.image_entry.delete(0, "end")
+        self.image_label.configure(text="No local file selected")
         # Refresh category list in case new ones were added
         cats = self.controller.get_categories() or []
         self._cat_names = [c["name"] for c in cats]
@@ -315,6 +337,20 @@ class ProductPage(BasePage):
             if rp['id'] == self._editing_id:
                 self.image_entry.insert(0, str(rp.get('image_url') or ""))
                 break
+
+    def _pick_image(self):
+        """Open file dialog to choose an image from device."""
+        filename = filedialog.askopenfilename(
+            title="Select Product Image",
+            filetypes=[("Image files", "*.png *.jpg *.jpeg *.webp *.gif"), ("All files", "*.*")]
+        )
+        if filename:
+            self._local_image_path = filename
+            basename = os.path.basename(filename)
+            self.image_label.configure(text=f"📌 Selected: {basename}")
+            # Visual feedback in the entry
+            self.image_entry.delete(0, "end")
+            self.image_entry.insert(0, filename)
 
     def _get_cat_id(self, name):
         """Return the category ID for a given category name."""
@@ -359,14 +395,29 @@ class ProductPage(BasePage):
             return
 
         try:
+            # Handle Local Image Saving
+            final_img_url = img_url
+            if self._local_image_path and self._local_image_path == img_url:
+                # User chose a local file, copy it to assets/products
+                assets_dir = os.path.join("assets", "products")
+                if not os.path.exists(assets_dir):
+                    os.makedirs(assets_dir)
+                
+                ext = os.path.splitext(self._local_image_path)[1]
+                # Unique filename to avoid collisions
+                new_filename = f"prod_{int(time.time())}{ext}"
+                dest_path = os.path.join(assets_dir, new_filename)
+                shutil.copy2(self._local_image_path, dest_path)
+                final_img_url = f"assets/products/{new_filename}"
+
             if self._editing_id:
                 # UPDATE existing product
                 self.controller.product_model.update(
-                    self._editing_id, cat_id, name, price_val, stock_val, img_url)
+                    self._editing_id, cat_id, name, price_val, stock_val, final_img_url)
                 messagebox.showinfo("Updated ✅", f"'{name}' has been updated!", parent=self.winfo_toplevel())
             else:
                 # ADD new product
-                ok, msg = self.controller.add_product(cat_id, name, price_val, stock_val, img_url)
+                ok, msg = self.controller.add_product(cat_id, name, price_val, stock_val, final_img_url)
                 if not ok:
                     messagebox.showerror("Error", msg, parent=self.winfo_toplevel())
                     return

@@ -87,7 +87,7 @@ class SignupPage(ctk.CTkFrame):
 
         # --- PASSWORD ---
         ctk.CTkLabel(
-            self.card, text="Password  (min 6 characters)",
+            self.card, text="Password  (min 8 characters)",
             font=ctk.CTkFont(size=13, weight="bold"),
             text_color="#ccccdd", anchor="w",
         ).pack(fill="x", padx=40)

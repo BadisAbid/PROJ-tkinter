@@ -4,6 +4,9 @@ from views.payment_modal import PaymentModal
 import urllib.request
 import io
 from PIL import Image
+import threading
+import hashlib
+import os
 
 class ClientPage(ctk.CTkFrame):
     BG     = "#0d0d1a"
@@ -22,10 +25,15 @@ class ClientPage(ctk.CTkFrame):
         self.cart = {} # Dictionary: {product_id: {"name": str, "price": float, "qty": int}}
         self.all_products = []
         self.image_cache = {} # {url: CTkImage}
+        self.cache_dir = os.path.join("assets", "cache")
+        if not os.path.exists(self.cache_dir):
+            os.makedirs(self.cache_dir)
+            
         self.current_view = "Shop"  # "Shop" or "Orders"
         
         # --- TOP LEVEL CONTAINERS ---
-        # The header stays visible
+        # 1. First build ONLY the header and the empty structure
+        # This makes the login transition INSTANT like the Admin login.
         self._build_header()
         
         self.content_area = ctk.CTkFrame(self, fg_color="transparent")
@@ -38,13 +46,16 @@ class ClientPage(ctk.CTkFrame):
         self.content_area.grid_rowconfigure(0, weight=1)
         self.content_area.grid_columnconfigure(0, weight=1)
 
-        # Build the two main views
-        self._build_shop_view()
-        self._build_orders_view()
+        # 2. Setup placeholders for sub-views
+        self.shop_view = None
+        self.orders_view = None
         
-        # Show shop by default
+        # 3. Enter the store immediately
+        # This matches the Admin Dashboard speed.
         self.show_view("Shop")
-        self._refresh_products()
+        
+        # Finally, fetch data in the background
+        self.after(50, self._refresh_products)
 
     # ==================================================
     #  HEADER & VIEW SWITCHING
@@ -94,12 +105,20 @@ class ClientPage(ctk.CTkFrame):
 
     def show_view(self, view_name):
         self.current_view = view_name
+        
+        # LAZY BUILDING: Only build the view if it doesn't exist yet
         if view_name == "Shop":
-            self.orders_view.grid_remove()
+            if not self.shop_view:
+                self._build_shop_view()
+            
+            if self.orders_view: self.orders_view.grid_remove()
             self.shop_view.grid(row=0, column=0, sticky="nsew")
             self.btn_switch.configure(text="🔔  My Orders", fg_color="#252545")
         else:
-            self.shop_view.grid_remove()
+            if not self.orders_view:
+                self._build_orders_view()
+            
+            if self.shop_view: self.shop_view.grid_remove()
             self.orders_view.grid(row=0, column=0, sticky="nsew")
             self.btn_switch.configure(text="🛍️  Back to Shop", fg_color=self.ACCENT)
             self._refresh_orders()
@@ -143,8 +162,12 @@ class ClientPage(ctk.CTkFrame):
             border_color=self.BORDER, fg_color=self.CARD, text_color=self.TEXT, button_color=self.ACCENT
         ).pack(side="left")
 
-        self.products_scroll = ctk.CTkScrollableFrame(left_panel, fg_color="transparent", orientation="horizontal")
+        # Change to vertical scroll for a "full screen" shop experience
+        self.products_scroll = ctk.CTkScrollableFrame(left_panel, fg_color="transparent")
         self.products_scroll.grid(row=1, column=0, sticky="nsew")
+        
+        # Configure grid for products
+        self.products_scroll.grid_columnconfigure((0, 1, 2, 3), weight=1)
 
     def _build_cart_section(self, parent):
         self.cart_panel = ctk.CTkFrame(
@@ -246,9 +269,10 @@ class ClientPage(ctk.CTkFrame):
         self.all_products = [p for p in prods if p.get('stock', 0) > 0] if prods else []
         self._filter_and_display()
 
-    def _filter_and_display(self):
+    def _filter_and_display(self, products_list=None):
         term = self.search_entry.get().strip().lower()
-        filtered = [p for p in self.all_products if term in p['name'].lower() or term in p.get('category_name', '').lower()]
+        source = products_list if products_list else self.all_products
+        filtered = [p for p in source if term in p['name'].lower() or term in p.get('category_name', '').lower()]
         
         sort_mode = self.sort_var.get()
         if sort_mode == "Price: Low to High":
@@ -258,27 +282,52 @@ class ClientPage(ctk.CTkFrame):
         elif sort_mode == "A to Z":
             filtered.sort(key=lambda x: x['name'].lower())
 
-        for w in self.products_scroll.winfo_children():
-            w.destroy()
+        # Start batch rendering from index 0
+        self._display_products_lazy(filtered, 0)
 
-        if not filtered:
-            ctk.CTkLabel(self.products_scroll, text="No products found matching your criteria.", text_color=self.MUTED, font=ctk.CTkFont(size=14)).grid(row=0, column=0, pady=40, padx=20)
+    def _display_products_lazy(self, products, start_idx=0):
+        """Ultra-fast renderer: creates cards in small batches to keep UI responsive."""
+        # On first batch, clear the scrollable frame
+        if start_idx == 0:
+            for w in self.products_scroll.winfo_children():
+                w.destroy()
+        
+        if not products:
+            if start_idx == 0:
+                ctk.CTkLabel(self.products_scroll, text="No products found matching your criteria.", 
+                             text_color=self.MUTED, font=ctk.CTkFont(size=14)).grid(row=0, column=0, pady=40, padx=20)
             return
 
-        for idx, prod in enumerate(filtered):
-            self._create_product_card(self.products_scroll, prod, 0, idx)
+        # Render batch (e.g., 16 cards per chunk)
+        batch_size = 16
+        end_idx = min(start_idx + batch_size, len(products))
+        cols = 4  # Matches grid layout
+        
+        for idx in range(start_idx, end_idx):
+            prod = products[idx]
+            row = idx // cols
+            col = idx % cols
+            self._create_product_card(self.products_scroll, prod, row, col)
 
+        # Schedule next batch only if there are more products (recursive lazy loading)
+        if end_idx < len(products):
+            # Check if self still exists (in case user switches view or logs out during load)
+            if self.winfo_exists():
+                self.after(20, lambda: self._display_products_lazy(products, end_idx))
+    
     def _create_product_card(self, parent, prod, row, col):
-        card = ctk.CTkFrame(parent, fg_color=self.CARD, border_width=1, border_color=self.BORDER, corner_radius=12, width=200, height=200)
+        # Increased height and width for a "professional" look
+        card = ctk.CTkFrame(parent, fg_color=self.CARD, border_width=1, border_color=self.BORDER, corner_radius=12, width=220, height=240)
         card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
         card.grid_propagate(False)
 
         # Image Holder
         img_url = prod.get('image_url')
-        ctk_img = self._get_image(img_url)
-        
-        img_label = ctk.CTkLabel(card, text="" if ctk_img else "🖼️", image=ctk_img, height=80)
+        img_label = ctk.CTkLabel(card, text="🖼️", image=None, height=80)
         img_label.pack(pady=(10, 5), padx=10, fill="both")
+
+        # Load image asynchronously
+        self._get_image_async(img_url, img_label)
 
         name = prod['name'] if len(prod['name']) <= 18 else prod['name'][:16] + ".."
         ctk.CTkLabel(card, text=name, font=ctk.CTkFont(size=14, weight="bold"), text_color=self.TEXT).pack(pady=(0, 2))
@@ -295,29 +344,70 @@ class ClientPage(ctk.CTkFrame):
             command=lambda p=prod: self._add_to_cart(p)
         ).pack(fill="x", padx=15, side="bottom", pady=(0, 15))
 
-    def _get_image(self, url):
-        """Fetch and cache image from URL. Returns a CTkImage or None."""
-        if not url or not url.startswith("http"):
-            return None
-        
-        if url in self.image_cache:
-            return self.image_cache[url]
+    def _get_image_async(self, url, label_widget):
+        """Fetch and cache image from URL or local path. Returns a CTkImage or None."""
+        if not url:
+            return
 
+        # 1. Check memory cache
+        if url in self.image_cache:
+            ctk_img = self.image_cache[url]
+            label_widget.configure(image=ctk_img, text="")
+            return
+
+        # 2. Check if it's a local file path (starts with assets/ or similar)
+        if not url.startswith("http"):
+            if os.path.exists(url):
+                try:
+                    pil_img = Image.open(url)
+                    pil_img = pil_img.resize((180, 80), Image.Resampling.LANCZOS)
+                    ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(180, 80))
+                    self.image_cache[url] = ctk_img
+                    label_widget.configure(image=ctk_img, text="")
+                    return
+                except: pass
+            return
+
+        # 3. Check local download cache for web URLs
+        url_hash = hashlib.md5(url.encode()).hexdigest()
+        cache_path = os.path.join(self.cache_dir, f"{url_hash}.png")
+
+        if os.path.exists(cache_path):
+            try:
+                pil_img = Image.open(cache_path)
+                ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(180, 80))
+                self.image_cache[url] = ctk_img
+                label_widget.configure(image=ctk_img, text="")
+                return
+            except: pass
+
+        # 4. Not in cache -> Start background thread to download
+        threading.Thread(target=self._download_and_cache, args=(url, cache_path, label_widget), daemon=True).start()
+
+    def _download_and_cache(self, url, cache_path, label_widget):
+        """Worker thread to download image and update UI."""
         try:
-            # Basic download (timeout 3s to stay responsive)
-            with urllib.request.urlopen(url, timeout=3) as response:
+            with urllib.request.urlopen(url, timeout=5) as response:
                 img_data = response.read()
             
             pil_img = Image.open(io.BytesIO(img_data))
             # Resize for the card
             pil_img = pil_img.resize((180, 80), Image.Resampling.LANCZOS)
             
+            # Save to local cache
+            pil_img.save(cache_path)
+
+            # Create CTkImage
             ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(180, 80))
             self.image_cache[url] = ctk_img
-            return ctk_img
+            
+            # Update UI on main thread
+            if label_widget.winfo_exists():
+                label_widget.after(0, lambda: label_widget.configure(image=ctk_img, text=""))
+                
         except Exception as e:
-            print(f"Error loading image {url}: {e}")
-            return None
+            # Silence errors in threads to prevent console spam
+            pass
 
     def _add_to_cart(self, prod):
         pid = prod['id']

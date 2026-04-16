@@ -151,11 +151,9 @@ class ShopManagerApp(ctk.CTk):
         # Clear login content
         self._clear()
 
-        # ---- TWO-COLUMN LAYOUT ----
-        # Column 0 = sidebar (fixed width)
-        # Column 1 = page content (stretches)
-        self.grid_columnconfigure(0, weight=0)
-        self.grid_columnconfigure(1, weight=1)
+        # ---- TWO-COLUMN LAYOUT (Admin) ----
+        self.grid_columnconfigure(0, weight=0) # Sidebar stays fixed
+        self.grid_columnconfigure(1, weight=1) # Page area stretches
         self.grid_rowconfigure(0, weight=1)
 
         # ---- SIDEBAR ----
@@ -230,9 +228,11 @@ class ShopManagerApp(ctk.CTk):
         # Import locally to avoid circular imports if client_page is large
         from views.client_page import ClientPage
 
-        # Full window is just the client page
-        self.grid_rowconfigure(0, weight=1)
+        # ---- ONE-COLUMN LAYOUT (Client) ----
+        # Reset column 1 so it doesn't take space if it was an admin session before
         self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=0)
+        self.grid_rowconfigure(0, weight=1)
 
         page = ClientPage(
             self,

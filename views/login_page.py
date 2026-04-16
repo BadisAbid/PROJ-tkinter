@@ -188,19 +188,25 @@ class LoginPage(ctk.CTkFrame):
             return
 
         # Show loading state
-        self.login_btn.configure(text="Signing in…", state="disabled")
+        self.login_btn.configure(text="Signing in...", state="disabled")
         self.update()
 
-        try:
-            selected_role = self.role_var.get().lower()
-            self.on_login_success(username, password, selected_role)
-        except Exception as err:
-            messagebox.showerror(
-                "Login Error",
-                f"Something went wrong:\n{err}",
-                parent=self.winfo_toplevel(),
-            )
-        finally:
-            # Reset button (Check if widget still exists in case of successful login/switch)
-            if self.winfo_exists():
-                self.login_btn.configure(text="Sign In  →", state="normal")
+        def _complete_login():
+            if not self.winfo_exists(): return
+            try:
+                selected_role = self.role_var.get().lower()
+                self.on_login_success(username, password, selected_role)
+            except Exception as err:
+                if self.winfo_exists():
+                    messagebox.showerror(
+                        "Login Error",
+                        f"Something went wrong:\n{err}",
+                        parent=self.winfo_toplevel(),
+                    )
+            finally:
+                # Reset button (Check if widget still exists in case of successful login/switch)
+                if self.winfo_exists():
+                    self.login_btn.configure(text="Sign In  →", state="normal")
+
+        # Fast login to match "enter like admin exactly"
+        _complete_login()

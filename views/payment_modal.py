@@ -1,6 +1,8 @@
 import customtkinter as ctk
 from tkinter import messagebox
 import random
+import os
+import datetime
 
 class PaymentModal(ctk.CTkToplevel):
     """
@@ -162,6 +164,86 @@ class PaymentModal(ctk.CTkToplevel):
             return
 
         # Success path!
-        messagebox.showinfo("Sandbox Payment Successful", "Payment processed successfully!\nCompleting your order.", parent=self)
-        self.destroy() # Close the modal
-        self.on_success() # Trigger the main _checkout_success method back in client_page
+        # Instead of closing immediately, show the 'Order Success' view
+        self._show_success_view()
+
+    def _show_success_view(self):
+        """Re-draw the payment side to show success and the Print Receipt button."""
+        # Clear payment side
+        for w in self.grid_slaves(column=1):
+            w.destroy()
+
+        success_frame = ctk.CTkFrame(self, fg_color=self.CARD, corner_radius=16, border_width=1, border_color="#28a745")
+        success_frame.grid(row=0, column=1, sticky="nsew", padx=(0, 15), pady=15)
+
+        ctk.CTkLabel(
+            success_frame, text="🎉  Payment Successful!", 
+            font=ctk.CTkFont(size=22, weight="bold"), text_color="#28a745"
+        ).pack(pady=(60, 10))
+
+        ctk.CTkLabel(
+            success_frame, text="Your order has been placed successfully.", 
+            font=ctk.CTkFont(size=14), text_color=self.TEXT
+        ).pack(pady=(0, 40))
+
+        # Print Receipt Button
+        ctk.CTkButton(
+            success_frame, text="📄  Print Receipt (Bill)", 
+            height=46, corner_radius=12,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color="#3b3b5c", hover_color="#4b4b7c",
+            command=self._print_receipt
+        ).pack(fill="x", padx=40, pady=10)
+
+        # Close/Complete Button
+        ctk.CTkButton(
+            success_frame, text="Done & Back to Store", 
+            height=46, corner_radius=12,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color=self.ACCENT, hover_color="#be185d",
+            command=lambda: [self.destroy(), self.on_success()]
+        ).pack(fill="x", padx=40, pady=10)
+
+    def _print_receipt(self):
+        """Generates a text-based bill and opens it."""
+        try:
+            order_id = random.randint(10000, 99999)
+            filename = f"receipt_order_{order_id}.txt"
+            
+            now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            content = f"========================================\n"
+            content += f"      SHOPMANAGER - OFFICIAL RECEIPT     \n"
+            content += f"========================================\n"
+            content += f"Date: {now}\n"
+            content += f"Order ID: #{order_id}\n"
+            content += f"----------------------------------------\n"
+            content += f"{'Item':<25} {'Qty':<5} {'Total':<10}\n"
+            content += f"----------------------------------------\n"
+            
+            for _pid, item in self.cart_items.items():
+                name = item['name']
+                if len(name) > 22: name = name[:20] + ".."
+                total = item['price'] * item['qty']
+                content += f"{name:<25} {item['qty']:<5} {total:>8.2f} TND\n"
+            
+            content += f"----------------------------------------\n"
+            content += f"{'GRAND TOTAL:':<31} {self.total_price:>8.2f} TND\n"
+            content += f"========================================\n"
+            content += f"    Thank you for your purchase!        \n"
+            content += f"========================================\n"
+
+            with open(filename, "w", encoding="utf-8") as f:
+                f.write(content)
+
+            # Open the file (Windows specific startfile, or generic opening)
+            if hasattr(os, 'startfile'):
+                os.startfile(filename)
+            else:
+                import subprocess
+                subprocess.run(['xdg-open' if os.name == 'posix' else 'open', filename])
+                
+            messagebox.showinfo("Receipt Printed", f"Receipt has been generated and opened: {filename}", parent=self)
+            
+        except Exception as e:
+            messagebox.showerror("Error Printing", f"Could not print receipt: {e}", parent=self)
