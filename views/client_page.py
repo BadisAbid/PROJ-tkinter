@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from tkinter import messagebox
-import webbrowser
+from views.payment_modal import PaymentModal
 
 class ClientPage(ctk.CTkFrame):
     BG     = "#0d0d1a"
@@ -97,7 +97,7 @@ class ClientPage(ctk.CTkFrame):
         )
         sort_combo.pack(side="left")
 
-        # Scrollable grid for products
+        # Scrollable area for products (HORIZONTAL)
         self.products_scroll = ctk.CTkScrollableFrame(left_panel, fg_color="transparent", orientation="horizontal")
         self.products_scroll.grid(row=1, column=0, sticky="nsew")
 
@@ -174,7 +174,9 @@ class ClientPage(ctk.CTkFrame):
 
         # 3. Display horizontally
         for idx, prod in enumerate(filtered):
-            self._create_product_card(self.products_scroll, prod, 0, idx)
+            r = 0
+            c = idx
+            self._create_product_card(self.products_scroll, prod, r, c)
 
     def _create_product_card(self, parent, prod, row, col):
         card = ctk.CTkFrame(parent, fg_color=self.CARD, border_width=1, border_color=self.BORDER, corner_radius=12, width=200, height=140)
@@ -275,6 +277,14 @@ class ClientPage(ctk.CTkFrame):
         if not confirm:
             return
 
+        # Open internal Konnect Sandbox Payment Modal
+        total = 0.0
+        for pid, item in self.cart.items():
+            total += item['price'] * item['qty']
+            
+        PaymentModal(self.winfo_toplevel(), self.cart, total, self._checkout_success)
+
+    def _checkout_success(self):
         try:
             customer = self.user.get('username', 'Client')
             # Insert each order line into DB, and reduce stock.
@@ -299,11 +309,6 @@ class ClientPage(ctk.CTkFrame):
                         )
                         break
 
-            # Open Konnect Sandbox Payment Gateway
-            webbrowser.open_new("https://sandbox.konnect.network/gateway/")
-            
-            messagebox.showinfo("Redirecting...", "Your order is placed as Pending (Status 0).\nA browser window has opened for you to complete your secure payment via Konnect Sandbox! 🎉", parent=self.winfo_toplevel())
-            
             self.cart.clear()
             self._render_cart()
             self._refresh_products() # Refresh stock

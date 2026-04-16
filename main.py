@@ -144,9 +144,9 @@ class ShopManagerApp(ctk.CTk):
         Expand the window to full size and build the
         sidebar + page area layout.
         """
-        # Animate window to full size (using zoomed for fullscreen on windows)
-        self.state('zoomed')
-        self.title("ShopManager — Admin Dashboard")
+        # Animate window to full size
+        self.state("zoomed")
+        self.title("ShopManager — Dashboard")
 
         # Clear login content
         self._clear()
@@ -223,7 +223,7 @@ class ShopManagerApp(ctk.CTk):
 
     def _show_client_app(self):
         """Load the Client storefront view"""
-        self.state('zoomed')
+        self.state("zoomed")
         self.title("ShopManager — Store")
         self._clear()
 

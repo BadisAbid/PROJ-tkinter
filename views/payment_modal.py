@@ -6,7 +6,7 @@ class PaymentModal(ctk.CTkToplevel):
     """
     A pop-up modal for processing a simulated 'Sandbox' payment.
     Displays an invoice (facture) on the left, and a simulated
-    Visa card generator on the right.
+    Konnect card generator on the right.
     """
     
     BG     = "#0d0d1a"
@@ -14,7 +14,7 @@ class PaymentModal(ctk.CTkToplevel):
     BORDER = "#3a3a6e"
     TEXT   = "#ccccdd"
     MUTED  = "#888899"
-    ACCENT = "#28a745"
+    ACCENT = "#db2777"  # Konnect pink/purple branding
 
     def __init__(self, parent, cart_items, total_price, on_success):
         super().__init__(parent)
@@ -22,7 +22,7 @@ class PaymentModal(ctk.CTkToplevel):
         self.total_price = total_price
         self.on_success = on_success
         
-        self.title("Checkout - Sandbox Payment")
+        self.title("Konnect Payment Gateway - Sandbox")
         self.geometry("750x500")
         self.resizable(False, False)
         self.configure(fg_color=self.BG)
@@ -68,12 +68,12 @@ class PaymentModal(ctk.CTkToplevel):
             subtotal = item['price'] * item['qty']
             
             ctk.CTkLabel(row, text=f"{item['qty']}x {name}", font=ctk.CTkFont(size=13), text_color=self.TEXT).pack(side="left")
-            ctk.CTkLabel(row, text=f"${subtotal:.2f}", font=ctk.CTkFont(size=13), text_color=self.MUTED).pack(side="right")
+            ctk.CTkLabel(row, text=f"{subtotal:.2f} TND", font=ctk.CTkFont(size=13), text_color=self.MUTED).pack(side="right")
 
         # Total footer
         ctk.CTkFrame(frame, height=1, fg_color=self.BORDER).pack(fill="x", padx=15, pady=(10, 10))
         total_lbl = ctk.CTkLabel(
-            frame, text=f"Total: ${self.total_price:.2f}", 
+            frame, text=f"Total: {self.total_price:.2f} TND", 
             font=ctk.CTkFont(size=20, weight="bold"), text_color=self.ACCENT
         )
         total_lbl.pack(pady=(0, 20))
@@ -84,30 +84,29 @@ class PaymentModal(ctk.CTkToplevel):
         frame.grid(row=0, column=1, sticky="nsew", padx=(0,15), pady=15)
         
         ctk.CTkLabel(
-            frame, text="💳  Sandbox Payment Area", 
+            frame, text="💳  Konnect Sandbox Payment", 
             font=ctk.CTkFont(size=18, weight="bold"), text_color=self.TEXT
         ).pack(pady=(20, 5))
         
         ctk.CTkLabel(
-            frame, text="Generate a mock Visa to test the checkout.", 
+            frame, text="Generate a mock Konnect Card to test the checkout.", 
             font=ctk.CTkFont(size=12), text_color=self.MUTED
         ).pack(pady=(0, 15))
 
         # Visual Card Area
         self.visacard = ctk.CTkFrame(frame, fg_color="#1f2937", corner_radius=12, border_width=2, border_color="#374151")
         self.visacard.pack(fill="x", padx=20, pady=10)
-
         self.card_num_lbl = ctk.CTkLabel(self.visacard, text="**** **** **** ****", font=ctk.CTkFont(size=18, weight="bold", family="Courier"), text_color=self.MUTED)
         self.card_num_lbl.pack(pady=(20, 5))
         
-        self.card_bal_lbl = ctk.CTkLabel(self.visacard, text="Balance: $0.00", font=ctk.CTkFont(size=14, weight="bold"), text_color=self.MUTED)
+        self.card_bal_lbl = ctk.CTkLabel(self.visacard, text="Balance: 0.00 TND", font=ctk.CTkFont(size=14, weight="bold"), text_color=self.MUTED)
         self.card_bal_lbl.pack(pady=(5, 20))
 
         # Generate Button
         self.gen_btn = ctk.CTkButton(
-            frame, text="🎲  Generate Sandbox Visa", 
+            frame, text="⚙️  Generate Konnect Sandbox Card", 
             height=42, corner_radius=10, 
-            fg_color="#007acc", hover_color="#005999",
+            fg_color="#db2777", hover_color="#be185d",
             command=self._generate_card
         )
         self.gen_btn.pack(fill="x", padx=20, pady=(20, 10))
@@ -140,17 +139,17 @@ class PaymentModal(ctk.CTkToplevel):
                 self.card_balance = 0.0
 
         # Update visuals
-        self.card_num_lbl.configure(text=card_num, text_color="#facc15") # Gold color
-        self.card_bal_lbl.configure(text=f"Balance: ${self.card_balance:.2f}", text_color="#ffffff")
-        self.visacard.configure(border_color="#facc15")
+        self.card_num_lbl.configure(text=card_num, text_color="#db2777") # Konnect pink
+        self.card_bal_lbl.configure(text=f"Balance: {self.card_balance:.2f} TND", text_color="#ffffff")
+        self.visacard.configure(border_color="#db2777")
 
         self.has_card = True
         self.pay_btn.configure(state="normal")
         
         if self.card_balance >= self.total_price:
-            messagebox.showinfo("Card Created", f"Sandbox Visa generated with sufficient funds: ${self.card_balance:.2f}.", parent=self)
+            messagebox.showinfo("Card Created", f"Konnect Sandbox Card generated with sufficient funds: {self.card_balance:.2f} TND.", parent=self)
         else:
-            messagebox.showwarning("Low Balance", f"Sandbox Visa generated, but balance (${self.card_balance:.2f}) is too low!", parent=self)
+            messagebox.showwarning("Low Balance", f"Konnect Sandbox Card generated, but balance ({self.card_balance:.2f} TND) is too low!", parent=self)
 
 
     def _process_payment(self):
