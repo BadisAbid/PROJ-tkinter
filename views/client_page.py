@@ -98,7 +98,7 @@ class ClientPage(ctk.CTkFrame):
         sort_combo.pack(side="left")
 
         # Scrollable grid for products
-        self.products_scroll = ctk.CTkScrollableFrame(left_panel, fg_color="transparent")
+        self.products_scroll = ctk.CTkScrollableFrame(left_panel, fg_color="transparent", orientation="horizontal")
         self.products_scroll.grid(row=1, column=0, sticky="nsew")
 
     # ==================================================
@@ -126,7 +126,7 @@ class ClientPage(ctk.CTkFrame):
         footer.grid(row=2, column=0, sticky="ew", pady=15, padx=20)
 
         self.total_label = ctk.CTkLabel(
-            footer, text="Total: $0.00", font=ctk.CTkFont(size=16, weight="bold"), text_color=self.TEXT
+            footer, text="Total: 0.00 TND", font=ctk.CTkFont(size=16, weight="bold"), text_color=self.TEXT
         )
         self.total_label.pack(anchor="w", pady=(0, 10))
 
@@ -172,12 +172,9 @@ class ClientPage(ctk.CTkFrame):
             ).grid(row=0, column=0, pady=40, padx=20)
             return
 
-        # 3. Display in a grid
-        cols = 3
+        # 3. Display horizontally
         for idx, prod in enumerate(filtered):
-            r = idx // cols
-            c = idx % cols
-            self._create_product_card(self.products_scroll, prod, r, c)
+            self._create_product_card(self.products_scroll, prod, 0, idx)
 
     def _create_product_card(self, parent, prod, row, col):
         card = ctk.CTkFrame(parent, fg_color=self.CARD, border_width=1, border_color=self.BORDER, corner_radius=12, width=200, height=140)
@@ -192,7 +189,7 @@ class ClientPage(ctk.CTkFrame):
         ctk.CTkLabel(card, text=cat, font=ctk.CTkFont(size=11), text_color=self.MUTED).pack()
 
         price = float(prod['price'])
-        ctk.CTkLabel(card, text=f"${price:.2f}", font=ctk.CTkFont(size=16, weight="bold"), text_color=self.ACCENT).pack(pady=(5, 5))
+        ctk.CTkLabel(card, text=f"{price:.2f} TND", font=ctk.CTkFont(size=16, weight="bold"), text_color=self.ACCENT).pack(pady=(5, 5))
 
         # Add to cart button
         ctk.CTkButton(
@@ -238,7 +235,7 @@ class ClientPage(ctk.CTkFrame):
 
         if not self.cart:
             ctk.CTkLabel(self.cart_items_scroll, text="Your cart is empty.", text_color=self.MUTED).pack(pady=30)
-            self.total_label.configure(text="Total: $0.00")
+            self.total_label.configure(text="Total: 0.00 TND")
             return
 
         total = 0.0
@@ -252,7 +249,7 @@ class ClientPage(ctk.CTkFrame):
             # Name and subtotal
             n = item['name'] if len(item['name']) <= 12 else item['name'][:10]+".."
             ctk.CTkLabel(row, text=f"{n}  (x{item['qty']})", font=ctk.CTkFont(size=13), text_color=self.TEXT).pack(side="left", anchor="w")
-            ctk.CTkLabel(row, text=f"${subtotal:.2f}", font=ctk.CTkFont(size=13, weight="bold"), text_color=self.TEXT).pack(side="right", padx=(0, 5))
+            ctk.CTkLabel(row, text=f"{subtotal:.2f} TND", font=ctk.CTkFont(size=13, weight="bold"), text_color=self.TEXT).pack(side="right", padx=(0, 5))
 
             # Remove button
             ctk.CTkButton(
@@ -260,7 +257,7 @@ class ClientPage(ctk.CTkFrame):
                 command=lambda p=pid: _remove_safe(p)
             ).pack(side="right", padx=5)
             
-        self.total_label.configure(text=f"Total: ${total:.2f}")
+        self.total_label.configure(text=f"Total: {total:.2f} TND")
 
         # Helper so lambda captures current pid properly
         def _remove_safe(p_id):

@@ -270,7 +270,7 @@ class DashboardPage(ctk.CTkFrame):
             ("📦", "Total Products", str(stats.get("total_products", 0)), "#7c83fd"),
             ("📊", "Total Stock",    str(stats.get("total_stock", 0)),    "#28a745"),
             ("🛒", "Total Orders",   str(stats.get("total_orders", 0)),   "#ffc107"),
-            ("💰", "Revenue",  f"${stats.get('total_revenue', 0):.2f}",   "#fd7c83"),
+            ("💰", "Revenue",  f"{stats.get('total_revenue', 0):.2f} TND",   "#fd7c83"),
         ]
         for col, (icon, title, value, color) in enumerate(cards_data):
             self._create_stat_card(col, icon, title, value, color)

@@ -179,7 +179,7 @@ class ProductPage(BasePage):
         self.cat_combo.pack(fill="x", padx=20, pady=(4, 12))
 
         # ---- PRICE ----
-        ctk.CTkLabel(self.panel, text="Price ($)", font=ctk.CTkFont(size=12, weight="bold"),
+        ctk.CTkLabel(self.panel, text="Price (TND)", font=ctk.CTkFont(size=12, weight="bold"),
                      text_color=self.TEXT, anchor="w").pack(fill="x", padx=20)
         self.price_entry = ctk.CTkEntry(
             self.panel, placeholder_text="e.g. 12.99",

@@ -104,15 +104,6 @@ class ShopManagerApp(ctk.CTk):
         success, user = self.controller.login(username, password)
 
         if success:
-            # Enforce that the user selected the proper role on the UI toggle
-            if user.get('role') != selected_role:
-                messagebox.showerror(
-                    "Login Failed",
-                    f"❌ Account is registered as '{user.get('role').title()}', but you selected '{selected_role.title()}'.\nPlease switch the toggle and try again.",
-                    parent=self,
-                )
-                return
-
             self.logged_in = True
             self.current_user = user
             
@@ -153,9 +144,9 @@ class ShopManagerApp(ctk.CTk):
         Expand the window to full size and build the
         sidebar + page area layout.
         """
-        # Animate window to full size
-        self._set_window_size(self.MAIN_W, self.MAIN_H)
-        self.title("ShopManager — Dashboard")
+        # Animate window to full size (using zoomed for fullscreen on windows)
+        self.state('zoomed')
+        self.title("ShopManager — Admin Dashboard")
 
         # Clear login content
         self._clear()
@@ -232,7 +223,7 @@ class ShopManagerApp(ctk.CTk):
 
     def _show_client_app(self):
         """Load the Client storefront view"""
-        self._set_window_size(1050, 650)
+        self.state('zoomed')
         self.title("ShopManager — Store")
         self._clear()
 
